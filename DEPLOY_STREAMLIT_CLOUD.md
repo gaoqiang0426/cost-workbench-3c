@@ -11,7 +11,7 @@ streamlit_app.py
 - GitHub 仓库已创建，并且本项目代码已经 push 到 GitHub。
 - 仓库根目录包含 `streamlit_app.py`、`app.py`、`requirements.txt` 和 `cost_workbench/`。
 - 不要上传 `.venv/`、`.pytest_cache/`、`__pycache__/`、`.streamlit/secrets.toml`、`cost需求文档.txt`、`docs/superpowers/`。
-- 当前版本已把 `cadquery==2.7.0` 放入 `requirements.txt`，并用 `runtime.txt` 固定 Python 3.12，用于在 Streamlit Community Cloud 上启用 STEP 几何解析。首次构建会比普通 Streamlit 应用更慢。
+- 当前免费云端版本不直接安装 `cadquery`，避免 Streamlit Community Cloud 在安装 OpenCascade/CAD 依赖时构建失败。云端会使用 STEP 文本中的 `CARTESIAN_POINT` 坐标做轻量外形尺寸识别；本地安装几何内核后仍可走真实 CAD 解析。
 
 ## Streamlit Cloud 页面填写
 
@@ -39,8 +39,8 @@ Python version: 3.12
 
 - `ModuleNotFoundError`：依赖没有写进 `requirements.txt`。
 - `No such file or directory`：入口文件路径没有填 `streamlit_app.py`。
-- 上传 STEP 后提示缺少几何内核：检查 Cloud 构建日志里 `cadquery` 是否安装成功，并确认 Python version 是 3.12。
+- 上传 STEP 后显示“轻量解析成功”：表示云端已根据 STEP 坐标点估算外形尺寸；真实实体体积和精确表面积需要本地或独立后端安装 CAD 几何内核。
 
 ## 后续升级路线
 
-如果 Streamlit Community Cloud 因资源限制导致 CadQuery 安装或导入失败，建议把 CadQuery 几何解析拆成独立后端，部署到国内云服务器或 Docker 平台；Streamlit Community Cloud 负责网页交互。
+如果要稳定支持真实 3D STEP 体积/表面积分析，建议把 CadQuery 几何解析拆成独立后端，部署到国内云服务器或 Docker 平台；Streamlit Community Cloud 负责网页交互。

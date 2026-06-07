@@ -51,8 +51,31 @@ END-ISO-10303-21;"""
     assert result["extension"] == ".step"
     assert result["schema"] == "AP214"
     assert result["entity_count"] == 2
-    assert result["status"] in {"缺少几何内核", "解析失败"}
-    assert result["lengthMm"] is None
+    assert result["status"] == "轻量解析成功"
+    assert result["lengthMm"] == 1.0
+
+
+def test_step_geometry_parser_falls_back_to_cartesian_point_bounds_without_cadquery():
+    step_text = b"""ISO-10303-21;
+HEADER;
+FILE_SCHEMA(('AP214'));
+ENDSEC;
+DATA;
+#1=CARTESIAN_POINT('',(-10.,5.,2.));
+#2=CARTESIAN_POINT('',(40.,25.,12.));
+#3=CARTESIAN_POINT('',(15.,-5.,7.));
+ENDSEC;
+END-ISO-10303-21;"""
+
+    result = parse_step_geometry("demo.step", step_text, importer=False)
+
+    assert result["status"] == "轻量解析成功"
+    assert result["lengthMm"] == 50.0
+    assert result["widthMm"] == 30.0
+    assert result["heightMm"] == 10.0
+    assert result["bboxVolumeMm3"] == 15000.0
+    assert result["volumeMm3"] is None
+    assert result["outerSurfaceAreaMm2"] == 4600.0
 
 
 def test_step_geometry_parser_uses_cadquery_like_importer():

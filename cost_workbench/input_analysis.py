@@ -29,24 +29,24 @@ def parse_step_geometry(
     content: bytes,
     importer: Any | None = None,
 ) -> dict[str, Any]:
+    if importer is False:
+        return _parse_step_point_bounds(content)
+
     if importer is None:
         try:
             import cadquery as cq  # type: ignore
 
             importer = cq.importers
         except Exception as exc:
-            return {
-                "status": "缺少几何内核",
-                "errorMessage": str(exc),
-                "message": "已读取 STEP 基础信息，但当前环境未安装 cadquery/OCP，无法计算真实长宽高、体积和表面积。",
-                "lengthMm": None,
-                "widthMm": None,
-                "heightMm": None,
-                "bboxVolumeMm3": None,
-                "volumeMm3": None,
-                "volumeUtilization": None,
-                "outerSurfaceAreaMm2": None,
-            }
+            lightweight = _parse_step_point_bounds(content)
+            if lightweight["status"] == "轻量解析成功":
+                lightweight["errorMessage"] = str(exc)
+                return lightweight
+            return _empty_geometry_result(
+                "缺少几何内核",
+                str(exc),
+                "已读取 STEP 基础信息，但当前环境未安装 cadquery/OCP，无法计算真实长宽高、体积和表面积。",
+            )
 
     suffix = Path(file_name).suffix.lower() or ".step"
     temp_path = None
@@ -79,18 +79,15 @@ def parse_step_geometry(
             "outerSurfaceAreaMm2": round(area, 3),
         }
     except Exception as exc:
-        return {
-            "status": "解析失败",
-            "errorMessage": str(exc),
-            "message": "STEP 文件读取失败，请检查文件是否为有效实体模型，或改用手动尺寸/截图分析。",
-            "lengthMm": None,
-            "widthMm": None,
-            "heightMm": None,
-            "bboxVolumeMm3": None,
-            "volumeMm3": None,
-            "volumeUtilization": None,
-            "outerSurfaceAreaMm2": None,
-        }
+        lightweight = _parse_step_point_bounds(content)
+        if lightweight["status"] == "轻量解析成功":
+            lightweight["errorMessage"] = str(exc)
+            return lightweight
+        return _empty_geometry_result(
+            "解析失败",
+            str(exc),
+            "STEP 文件读取失败，请检查文件是否为有效实体模型，或改用手动尺寸/截图分析。",
+        )
     finally:
         if temp_path:
             try:
@@ -133,6 +130,62 @@ def infer_view_type(file_name: str) -> str:
     if any(key in lower for key in ["section", "detail", "剖", "局部"]):
         return "剖视/局部细节"
     return "未识别"
+
+
+def _parse_step_point_bounds(content: bytes) -> dict[str, Any]:
+    text = content[:2_000_000].decode("utf-8", errors="ignore")
+    points: list[tuple[float, float, float]] = []
+    pattern = re.compile(
+        r"CARTESIAN_POINT\s*\([^()]*,\s*\(\s*([-+0-9.Ee]+)\s*,\s*([-+0-9.Ee]+)\s*,\s*([-+0-9.Ee]+)\s*\)\s*\)",
+        re.I,
+    )
+    for match in pattern.finditer(text):
+        try:
+            points.append(tuple(float(value) for value in match.groups()))
+        except ValueError:
+            continue
+
+    if len(points) < 2:
+        return _empty_geometry_result(
+            "轻量解析失败",
+            "",
+            "未在 STEP 文本中识别到足够的 CARTESIAN_POINT 坐标，无法估算外形尺寸。",
+        )
+
+    xs, ys, zs = zip(*points)
+    length = max(xs) - min(xs)
+    width = max(ys) - min(ys)
+    height = max(zs) - min(zs)
+    bbox_volume = length * width * height
+    bbox_area = 2 * (length * width + length * height + width * height)
+
+    return {
+        "status": "轻量解析成功",
+        "errorMessage": "",
+        "message": "云端已使用 STEP 坐标点轻量解析外形长宽高；体积为包围盒估算，真实实体体积需完整 CAD 几何内核。",
+        "lengthMm": round(length, 3),
+        "widthMm": round(width, 3),
+        "heightMm": round(height, 3),
+        "bboxVolumeMm3": round(bbox_volume, 3),
+        "volumeMm3": None,
+        "volumeUtilization": None,
+        "outerSurfaceAreaMm2": round(bbox_area, 3),
+    }
+
+
+def _empty_geometry_result(status: str, error_message: str, message: str) -> dict[str, Any]:
+    return {
+        "status": status,
+        "errorMessage": error_message,
+        "message": message,
+        "lengthMm": None,
+        "widthMm": None,
+        "heightMm": None,
+        "bboxVolumeMm3": None,
+        "volumeMm3": None,
+        "volumeUtilization": None,
+        "outerSurfaceAreaMm2": None,
+    }
 
 
 def _shape_from_workplane(workplane: Any) -> Any:

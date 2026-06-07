@@ -42,7 +42,7 @@ http://localhost:9005/
 
 ## 免费云端部署
 
-本项目已准备 Streamlit Community Cloud 入口文件，并在 `requirements.txt` 中加入 `cadquery==2.7.0` 用于云端 STEP 几何解析：
+本项目已准备 Streamlit Community Cloud 入口文件。云端不直接安装重型 CAD 几何内核，而是使用 STEP 坐标点做轻量外形尺寸识别，避免免费云端构建失败：
 
 ```text
 streamlit_app.py
