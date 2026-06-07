@@ -5,6 +5,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+STEP_LIGHTWEIGHT_SCAN_LIMIT = 50_000_000
+
 
 def analyze_step_file(file_name: str, content: bytes) -> dict[str, Any]:
     extension = Path(file_name).suffix.lower()
@@ -133,23 +135,25 @@ def infer_view_type(file_name: str) -> str:
 
 
 def _parse_step_point_bounds(content: bytes) -> dict[str, Any]:
-    text = content[:2_000_000].decode("utf-8", errors="ignore")
+    text = content[:STEP_LIGHTWEIGHT_SCAN_LIMIT].decode("utf-8", errors="ignore")
     points: list[tuple[float, float, float]] = []
+    number = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[EeDd][-+]?\d+)?"
     pattern = re.compile(
-        r"CARTESIAN_POINT\s*\([^()]*,\s*\(\s*([-+0-9.Ee]+)\s*,\s*([-+0-9.Ee]+)\s*,\s*([-+0-9.Ee]+)\s*\)\s*\)",
-        re.I,
+        rf"CARTESIAN_POINT\s*\([^;]*?\(\s*({number})\s*,\s*({number})\s*,\s*({number})\s*\)\s*\)",
+        re.I | re.S,
     )
     for match in pattern.finditer(text):
         try:
-            points.append(tuple(float(value) for value in match.groups()))
+            points.append(tuple(float(value.replace("D", "E").replace("d", "E")) for value in match.groups()))
         except ValueError:
             continue
 
     if len(points) < 2:
+        suffix = "，当前仅扫描前 50MB 内容" if len(content) > STEP_LIGHTWEIGHT_SCAN_LIMIT else ""
         return _empty_geometry_result(
             "轻量解析失败",
             "",
-            "未在 STEP 文本中识别到足够的 CARTESIAN_POINT 坐标，无法估算外形尺寸。",
+            f"未在 STEP 文本中识别到足够的 CARTESIAN_POINT 坐标，无法估算外形尺寸{suffix}。",
         )
 
     xs, ys, zs = zip(*points)

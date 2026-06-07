@@ -78,6 +78,24 @@ END-ISO-10303-21;"""
     assert result["outerSurfaceAreaMm2"] == 4600.0
 
 
+def test_step_lightweight_parser_finds_cartesian_points_after_large_header():
+    step_text = (
+        b"ISO-10303-21;\nHEADER;\nFILE_SCHEMA(('AP214'));\nENDSEC;\nDATA;\n"
+        + (b"/* late geometry padding */\n" * 90_000)
+        + b"#1=CARTESIAN_POINT('',(-1.D+1,5.,2.));\n"
+        + b"#2=CARTESIAN_POINT('',(40.,2.5E+1,12.));\n"
+        + b"#3=CARTESIAN_POINT('',(15.,-5.,7.));\n"
+        + b"ENDSEC;\nEND-ISO-10303-21;"
+    )
+
+    result = parse_step_geometry("late_geometry.step", step_text, importer=False)
+
+    assert result["status"] == "轻量解析成功"
+    assert result["lengthMm"] == 50.0
+    assert result["widthMm"] == 30.0
+    assert result["heightMm"] == 10.0
+
+
 def test_step_geometry_parser_uses_cadquery_like_importer():
     class FakeBoundingBox:
         xlen = 10.0
