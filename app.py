@@ -1,5 +1,6 @@
 import streamlit as st
 
+from cost_workbench.consultation import CONSULTATION_NOTE, qr_code_path
 from cost_workbench.cost_engine import (
     MACHINE_RATES_YUAN_PER_SECOND,
     SURFACE_TREATMENT_RATES_YUAN_PER_CM2,
@@ -158,6 +159,20 @@ def _inject_styles() -> None:
             font-size: 13px;
             color: #4b5563;
         }
+        .consultation-qr-title {
+            margin-top: 22px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+            color: #111827;
+            font-weight: 750;
+        }
+        .consultation-qr-note {
+            max-width: 300px;
+            margin-top: 8px;
+            color: #374151;
+            font-size: 14px;
+            line-height: 1.5;
+        }
         @media (max-width: 760px) {
             .route-meta { grid-template-columns: 1fr; }
             .metric-card-grid { grid-template-columns: 1fr; }
@@ -224,6 +239,7 @@ def _page_input_analysis() -> None:
                     "items": [],
                     "message": paste_note,
                 }
+        _render_consultation_qr()
 
     with right:
         st.subheader("自动分析与参数确认")
@@ -542,6 +558,16 @@ def _render_process_parameter_inputs(process: str) -> dict:
         "print_time_h": col_b.number_input("打印时间(h)", min_value=0.1, value=6.0, step=0.5),
         "post_process": col_c.selectbox("后处理", ["基础去支撑", "打磨喷漆", "精修外观"]),
     }
+
+
+def _render_consultation_qr() -> None:
+    st.markdown('<div class="consultation-qr-title">咨询报价</div>', unsafe_allow_html=True)
+    path = qr_code_path()
+    if path.exists():
+        st.image(str(path), width=280)
+        st.markdown(f'<div class="consultation-qr-note">{CONSULTATION_NOTE}</div>', unsafe_allow_html=True)
+    else:
+        st.caption("收款码图片未找到，请确认 docs/default.jpg 已存在。")
 
 
 def _analysis_rows(analysis: dict) -> list[dict[str, object]]:
