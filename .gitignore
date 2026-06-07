@@ -1,0 +1,13 @@
+.venv/
+.venv*/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.streamlit/secrets.toml
+.env
+dist/
+build/
+*.egg-info/
+cost需求文档.txt
+docs/superpowers/
+gh-auth*.log
