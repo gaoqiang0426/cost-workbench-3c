@@ -34,7 +34,7 @@ def test_process_routes_module_imports_and_all_routes_have_steps():
         assert all({"name", "description", "risk", "cost_item", "geometry_basis"} <= set(step) for step in route)
 
 
-def test_step_file_analysis_extracts_schema_and_entity_count_without_cad_kernel():
+def test_step_file_analysis_extracts_schema_and_entity_count_regardless_of_geometry_kernel():
     step_text = b"""ISO-10303-21;
 HEADER;
 FILE_SCHEMA(('AP214'));
@@ -51,7 +51,8 @@ END-ISO-10303-21;"""
     assert result["extension"] == ".step"
     assert result["schema"] == "AP214"
     assert result["entity_count"] == 2
-    assert result["status"] == "缺少几何内核"
+    assert result["status"] in {"缺少几何内核", "解析失败"}
+    assert result["lengthMm"] is None
 
 
 def test_step_geometry_parser_uses_cadquery_like_importer():

@@ -12,6 +12,7 @@ from cost_workbench.optimization import generate_optimization_suggestions
 from cost_workbench.process_parameters import summarize_process_parameters
 from cost_workbench.process_routes import get_process_route
 from cost_workbench.report_generator import build_report, generate_pdf_report
+from cost_workbench.ui_helpers import metric_card_html
 
 
 st.set_page_config(
@@ -120,6 +121,35 @@ def _inject_styles() -> None:
             margin-right: 10px;
         }
         .route-title { font-weight: 750; color: #111827; }
+        .metric-card-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin: 10px 0 18px;
+        }
+        .metric-card {
+            min-width: 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 14px;
+            background: #ffffff;
+        }
+        .metric-card-label {
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.35;
+            margin-bottom: 8px;
+        }
+        .metric-card-value {
+            color: #111827;
+            font-size: 22px;
+            font-weight: 700;
+            line-height: 1.25;
+            letter-spacing: 0;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
         .route-meta {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -130,6 +160,7 @@ def _inject_styles() -> None:
         }
         @media (max-width: 760px) {
             .route-meta { grid-template-columns: 1fr; }
+            .metric-card-grid { grid-template-columns: 1fr; }
             .hero-band h1 { font-size: 28px; }
         }
         </style>
@@ -204,10 +235,14 @@ def _page_input_analysis() -> None:
         material = get_material(material_name)
         geometry_defaults = _geometry_defaults(step_result, material, process)
 
-        info_a, info_b, info_c = st.columns(3)
-        info_a.metric("材料密度", f"{material['density_g_cm3']} g/cm³")
-        info_b.metric("参考单价", f"{material['price_yuan_kg']} 元/kg")
-        info_c.metric("材料类别", material["category"])
+        st.markdown(
+            '<div class="metric-card-grid">'
+            + metric_card_html("材料密度", f"{material['density_g_cm3']} g/cm³")
+            + metric_card_html("参考单价", f"{material['price_yuan_kg']} 元/kg")
+            + metric_card_html("材料类别", material["category"])
+            + "</div>",
+            unsafe_allow_html=True,
+        )
 
         weight_col, price_col = st.columns(2)
         with weight_col:
