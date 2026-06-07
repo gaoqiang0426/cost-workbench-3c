@@ -42,7 +42,7 @@ http://localhost:9005/
 
 ## 免费云端部署
 
-本项目已准备 Streamlit Community Cloud 入口文件：
+本项目已准备 Streamlit Community Cloud 入口文件，并在 `requirements.txt` 中加入 `cadquery==2.7.0` 用于云端 STEP 几何解析：
 
 ```text
 streamlit_app.py
